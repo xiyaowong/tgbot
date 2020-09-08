@@ -1,9 +1,9 @@
 package tdlib
 
-//#cgo linux CFLAGS: -I../tgbot
-//#cgo darwin CFLAGS: -I../tgbot
-//#cgo windows CFLAGS: -Itd
-//#cgo windows LDFLAGS: -Ltd -ltdjson
+//#cgo linux CFLAGS: -I../
+//#cgo darwin CFLAGS: -I../
+//#cgo windows CFLAGS: -I../
+//#cgo windows LDFLAGS: -L../tgbot -ltdjson
 //#cgo linux LDFLAGS: -L../tgbot -ltdjson -ldl -lz -lm
 //#cgo darwin LDFLAGS: -L../tgbot -ltdjson.1.6.0 -ldl -lz -lm
 //#cgo LDFLAGS: -Wl,-rpath,./
