@@ -8,33 +8,89 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"reflect"
+	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/locales/en"
+	"github.com/go-playground/locales/zh"
+	ut "github.com/go-playground/universal-translator"
+	"github.com/go-playground/validator/v10"
+	enTranslations "github.com/go-playground/validator/v10/translations/en"
+	zhTranslations "github.com/go-playground/validator/v10/translations/zh"
 
 	"tdlib"
 	"tgbot/config"
 	"tgbot/utils"
 )
 
+var trans ut.Translator
+
+// InitTrans 初始化翻译器
+func InitTrans(locale string) (err error) {
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+
+		v.RegisterTagNameFunc(func(fld reflect.StructField) string {
+			name := strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
+			if name == "-" {
+				return ""
+			}
+			return name
+		})
+
+		zhT := zh.New()
+		enT := en.New()
+
+		uni := ut.New(enT, zhT, enT)
+
+		var ok bool
+		trans, ok = uni.GetTranslator(locale)
+		if !ok {
+			return fmt.Errorf("uni.GetTranslator(%s) failed", locale)
+		}
+
+		switch locale {
+		case "en":
+			err = enTranslations.RegisterDefaultTranslations(v, trans)
+		case "zh":
+			err = zhTranslations.RegisterDefaultTranslations(v, trans)
+		default:
+			err = enTranslations.RegisterDefaultTranslations(v, trans)
+		}
+		return
+	}
+	return
+}
+
+type Response struct {
+	Code int         `json:"code"`
+	Err  string      `json:"err"`
+	Data interface{} `json:"data"`
+}
+
 func BuildResponse(c *gin.Context, err error, data interface{}) {
 	if err == nil {
-		c.JSON(http.StatusOK, &struct {
-			Code int         `json:"code"`
-			Err  string      `json:"err"`
-			Data interface{} `json:"data"`
-		}{
+		c.JSON(http.StatusOK, &Response{
 			Code: 0,
 			Data: data,
 		})
 	} else {
-		c.JSON(http.StatusOK, &struct {
-			Code int         `json:"code"`
-			Err  string      `json:"err"`
-			Data interface{} `json:"data"`
-		}{
-			Code: 1,
-			Err:  err.Error(),
-		})
+		if errs, ok := err.(validator.ValidationErrors); ok {
+			var errStrs []string
+			for _, errStr := range errs.Translate(trans) {
+				errStrs = append(errStrs, errStr)
+			}
+			c.JSON(http.StatusOK, &Response{
+				Code: 1,
+				Err:  strings.Join(errStrs, ","),
+			})
+		} else {
+			c.JSON(http.StatusOK, &Response{
+				Code: 1,
+				Err:  err.Error(),
+			})
+		}
 	}
 }
 
@@ -146,6 +202,10 @@ func WebGetChat(c *gin.Context) {
 }
 
 func RunServe() {
+	if err := InitTrans("zh"); err != nil {
+		fmt.Printf("init trans failed, err:%v\n", err)
+	}
+
 	gin.SetMode(gin.ReleaseMode)
 
 	router := gin.New()
