@@ -162,6 +162,7 @@ func WebDeleteMessages(c *gin.Context) {
 	BuildResponse(c, err, nil)
 }
 
+// WebGetUser 获取用户信息
 func WebGetUser(c *gin.Context) {
 	logger.Notice("Web GetUser")
 	var user struct {
@@ -185,6 +186,7 @@ func WebGetUser(c *gin.Context) {
 	BuildResponse(c, err, data)
 }
 
+// WebGetChat 获取群组信息
 func WebGetChat(c *gin.Context) {
 	logger.Notice("Web GetChat")
 	var chat struct {

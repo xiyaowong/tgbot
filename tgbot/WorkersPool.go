@@ -160,9 +160,7 @@ func (p *WorkPool) workInit(id int) {
 				}
 			}
 		}
-		logger.Error("worker  exit %d", idNum)
 	}(id)
-
 }
 
 //停止一个workPool
